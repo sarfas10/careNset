@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment Completed</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fff0f0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: 1rem;
+    }
+
+    .icon {
+      font-size: 4rem;
+      color: #ff4444;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: #666;
+      line-height: 1.6;
+      margin: 1rem 0;
+    }
+
+    .countdown {
+      font-weight: bold;
+      color: #ff4444;
+    }
+
+    .button {
+      background: #ff4444;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+    }
+
+    .button:hover {
+      background: #cc0000;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255,68,68,0.3);
+    }
+
+    .small-text {
+      font-size: 0.9rem;
+      color: #999;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">✕</div>
+    <h1>Payment Successfull</h1>
+    <p id="user-info">The transaction was completed successfully.</p>
+    <p>You'll be automatically redirected in <span id="countdown" class="countdown">5</span> seconds</p>
+    <button class="button" id="close-btn">Return to App Now</button>
+    <p class="small-text">If redirection doesn't work automatically, click the button above</p>
+  </div><!-- Manual close button -->
+
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js';
+    import { getFirestore, serverTimestamp, collection, addDoc } from 'https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCtNSCJapiyJ6B1nFXHP02-7flVw4NrWc0",
+      authDomain: "test2-42138.firebaseapp.com",
+      projectId: "test2-42138",
+      storageBucket: "test2-42138.appspot.com",
+      messagingSenderId: "998395838291",
+      appId: "1:998395838291:web:ea863bb344a74fe050eba6",
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Function to save payment status with userId
+    const savePaymentStatus = (userId) => {
+      const paymentsRef = collection(db, "payments");
+      addDoc(paymentsRef, {
+        userId: userId,
+        status: "success",
+        timestamp: serverTimestamp(),
+      })
+        .then(() => {
+          console.log("Payment success recorded with userId!");
+        })
+        .catch((error) => {
+          console.error("Error recording payment success:", error);
+        });
+    };
+
+    // Show logged-in user info and save payment status
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        const userId = user.uid;
+        document.getElementById("user-info").innerText =
+          `Payment cpmpleted successfully, ${user.displayName || user.email}!`;
+        savePaymentStatus(userId); // Save userId with payment status
+      } else {
+        console.error("No user is logged in.");
+      }
+    });
+
+ // Countdown timer
+ let seconds = 5;
+    const countdownElement = document.getElementById('countdown');
+    
+    const updateCountdown = () => {
+      seconds--;
+      countdownElement.textContent = seconds;
+      if (seconds <= 0) {
+        clearInterval(countdownInterval);
+      }
+    };
+
+    const countdownInterval = setInterval(updateCountdown, 1000);
+
+    // Close/redirect functionality
+    const closeWindow = () => {
+      if (window.opener) {
+        window.close();
+      } else {
+        window.location.href = '/';
+      }
+    };
+
+    // Automatic close after 5 seconds
+    setTimeout(closeWindow, 5000);
+
+    // Manual close button
+    document.getElementById('close-btn').addEventListener('click', closeWindow);
+
+    // User info display
+    auth.onAuthStateChanged((user) => {
+      const userInfo = document.getElementById('user-info');
+      if (user) {
+        userInfo.innerHTML = `Hello ${user.displayName || user.email},<br>Your payment was not completed.`;
+        savePaymentStatus(user.uid);
+      } else {
+        userInfo.textContent = "Payment failed. Please log in and try again.";
+      }
+    });
+  </script>
+</body>
+</html>
